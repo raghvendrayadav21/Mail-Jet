@@ -53,7 +53,7 @@ public class AiService {
                 + "1. \"sentiment\": A string indicating the sentiment of the email. Choose from: \"Urgent\", \"Neutral\", \"Appreciation\", \"Disappointment\".\n"
                 + "2. \"urgency\": A string indicating the priority level. Choose from: \"High\", \"Medium\", \"Low\".\n"
                 + "3. \"generatedResponse\": A high-quality, professional reply to this email, adhering strictly to any [Tone Guideline] mentioned in the content. "
-                + "IMPORTANT: Sign the reply with the name \"" + senderName + "\" — do NOT use placeholder text like [Your Name].\n\n"
+                + "IMPORTANT: This must be a single plain text string, NOT a nested JSON object (like { \"body\": \"...\" }). Sign the reply with the name \"" + senderName + "\" — do NOT use placeholder text like [Your Name].\n\n"
                 + "Ensure that the JSON is properly formatted and closed. Do not wrap the JSON in ```json markdown codeblocks.\n\n"
                 + "Email Content & Guidelines:\n" + emailContent;
 
@@ -192,7 +192,21 @@ public class AiService {
 
             String sentiment = root.has("sentiment") ? root.get("sentiment").asText() : defaultSentiment;
             String urgency   = root.has("urgency")   ? root.get("urgency").asText()   : defaultUrgency;
-            String generatedResponse = root.has("generatedResponse") ? root.get("generatedResponse").asText() : null;
+            String generatedResponse = null;
+            if (root.has("generatedResponse")) {
+                JsonNode responseNode = root.get("generatedResponse");
+                if (responseNode.isObject()) {
+                    if (responseNode.has("body")) {
+                        generatedResponse = responseNode.get("body").asText();
+                    } else if (responseNode.has("text")) {
+                        generatedResponse = responseNode.get("text").asText();
+                    } else {
+                        generatedResponse = responseNode.toString();
+                    }
+                } else {
+                    generatedResponse = responseNode.asText();
+                }
+            }
 
             if (sentiment == null || sentiment.isBlank())         sentiment = defaultSentiment;
             if (urgency == null || urgency.isBlank())             urgency   = defaultUrgency;
